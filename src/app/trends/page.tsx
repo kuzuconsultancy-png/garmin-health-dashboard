@@ -9,9 +9,7 @@ import { ArrowLeft, TrendingUp, Loader2, FileDown, ArrowUpRight, ArrowDownRight,
 import type { DailyMetrics, TrendPoint } from '@/lib/types';
 import BottomNav from '@/components/BottomNav';
 import TrendSparkline from '@/components/ui/TrendSparkline';
-import WeeklySummaryCard from '@/components/WeeklySummaryCard';
 import { calculateMedian, getCategoryColor } from '@/lib/scoring';
-import { useProfile } from '@/lib/useProfile';
 import { useLang } from '@/lib/i18n';
 
 type Range = 7 | 30 | 90;
@@ -203,7 +201,6 @@ interface RowData {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function TrendsPage() {
   const { t, locale } = useLang();
-  const { profile } = useProfile();
   const [data,         setData]         = useState<DailyMetrics | null>(null);
   const [range,        setRange]        = useState<Range>(7);
   const [trendPoints,  setTrendPoints]  = useState<TrendPoint[] | null>(null);
@@ -295,10 +292,7 @@ export default function TrendsPage() {
           ))}
         </div>
 
-        {/* ── AI Summary — only for 7d ───────────────────────────────── */}
-        {range === 7 && data && (
-          <WeeklySummaryCard trend={data.weeklyTrend} profile={profile} />
-        )}
+        {/* AI weekly summary moved to /advice (Phase 2) */}
 
         {/* ── Loading skeleton ───────────────────────────────────────── */}
         {isLoading && (

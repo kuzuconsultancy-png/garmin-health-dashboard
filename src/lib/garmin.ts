@@ -1,7 +1,7 @@
 import { format, subDays } from 'date-fns';
 import type {
   DailyMetrics, SleepData, HRVData, BodyBatteryData,
-  StressData, ActivityData, WeeklyTrend, TrendPoint,
+  StressData, ActivityData, WeeklyTrend, TrendPoint, RecentActivity,
 } from './types';
 import {
   calculateSleepScore, calculateRecoveryScore, getRecoveryCategory,
@@ -559,4 +559,98 @@ export async function fetchTrendData(range: number, endDateStr: string): Promise
 
   trendsCache.set(cacheKey, { data: points, ts: Date.now() });
   return points;
+}
+
+// ─── Recent activities (for AI advice) ────────────────────────────────────────
+
+interface RecentActivitiesCacheEntry { data: RecentActivity[]; ts: number }
+const activitiesCache = new Map<number, RecentActivitiesCacheEntry>();
+const ACTIVITIES_CACHE_TTL = 30 * 60 * 1000; // 30 min
+
+function generateMockRecentActivities(days: number): RecentActivity[] {
+  // Realistic 14-day training pattern: 3 runs, 2 bikes, 1 strength, mix of rest
+  const today = new Date();
+  const plan: Array<Omit<RecentActivity, 'date'> | null> = [
+    { sportType: 'running',          durationMinutes: 42, distanceKm: 7.2,  averageHR: 152, maxHR: 174, trainingLoad: 85, calories: 450 },
+    null, // rest
+    { sportType: 'cycling',          durationMinutes: 70, distanceKm: 28.5, averageHR: 138, maxHR: 162, trainingLoad: 110, calories: 680 },
+    { sportType: 'strength_training',durationMinutes: 50, distanceKm: 0,    averageHR: 118, maxHR: 148, trainingLoad: 45, calories: 320 },
+    null,
+    { sportType: 'running',          durationMinutes: 58, distanceKm: 10.0, averageHR: 158, maxHR: 181, trainingLoad: 135, calories: 620 },
+    { sportType: 'running',          durationMinutes: 35, distanceKm: 5.8,  averageHR: 144, maxHR: 166, trainingLoad: 62, calories: 370 },
+    null,
+    { sportType: 'cycling',          durationMinutes: 90, distanceKm: 36.0, averageHR: 142, maxHR: 168, trainingLoad: 155, calories: 890 },
+    { sportType: 'strength_training',durationMinutes: 45, distanceKm: 0,    averageHR: 115, maxHR: 142, trainingLoad: 40, calories: 280 },
+    null,
+    { sportType: 'running',          durationMinutes: 48, distanceKm: 8.1,  averageHR: 154, maxHR: 178, trainingLoad: 98, calories: 510 },
+    null,
+    { sportType: 'running',          durationMinutes: 75, distanceKm: 12.5, averageHR: 149, maxHR: 172, trainingLoad: 145, calories: 740 },
+  ];
+  const out: RecentActivity[] = [];
+  for (let i = 0; i < days; i++) {
+    const slot = plan[(days - 1 - i) % plan.length];
+    if (slot) {
+      out.push({ date: format(subDays(today, days - 1 - i), 'yyyy-MM-dd'), ...slot });
+    }
+  }
+  return out;
+}
+
+export async function fetchRecentActivities(days = 14): Promise<{ activities: RecentActivity[]; isDemo: boolean }> {
+  const cached = activitiesCache.get(days);
+  if (cached && Date.now() - cached.ts < ACTIVITIES_CACHE_TTL) {
+    return { activities: cached.data, isDemo: false };
+  }
+
+  const client = await getClient();
+  if (!client) {
+    return { activities: generateMockRecentActivities(days), isDemo: true };
+  }
+
+  try {
+    const gc = client as Record<string, (...args: unknown[]) => Promise<unknown>>;
+    // Pull a generous window — Garmin returns newest first; 50 entries covers 14 days for most athletes.
+    const raw = await gc.getActivities(0, 50) as unknown[];
+    if (!Array.isArray(raw)) {
+      return { activities: generateMockRecentActivities(days), isDemo: true };
+    }
+
+    const cutoff = subDays(new Date(), days);
+    cutoff.setHours(0, 0, 0, 0);
+
+    const activities: RecentActivity[] = raw
+      .map((a) => {
+        const act = a as Record<string, unknown>;
+        const startStr = (act.startTimeLocal ?? act.startTimeGMT ?? act.activityDate ?? '') as string;
+        if (!startStr) return null;
+        const start = new Date(startStr);
+        if (isNaN(start.getTime()) || start < cutoff) return null;
+
+        const durSec = (act.duration ?? act.movingDuration ?? 0) as number;
+        const distM  = (act.distance ?? 0) as number;
+        const type   = act.activityType as Record<string, unknown> | undefined;
+        const aerobic   = (act.aerobicTrainingEffect ?? 0) as number;
+        const anaerobic = (act.anaerobicTrainingEffect ?? 0) as number;
+        const load = aerobic + anaerobic;
+
+        return {
+          date: format(start, 'yyyy-MM-dd'),
+          sportType: (type?.typeKey ?? type?.key ?? 'other') as string,
+          durationMinutes: Math.round(durSec / 60),
+          distanceKm: Math.round((distM / 1000) * 10) / 10,
+          averageHR: Math.round((act.averageHR ?? act.averageHeartRateInBeatsPerMinute ?? 0) as number),
+          maxHR: Math.round((act.maxHR ?? act.maxHeartRateInBeatsPerMinute ?? 0) as number),
+          trainingLoad: load > 0 ? Math.round(load * 10) / 10 : undefined,
+          calories: Math.round((act.calories ?? 0) as number),
+        } as RecentActivity;
+      })
+      .filter((a): a is RecentActivity => a !== null)
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    activitiesCache.set(days, { data: activities, ts: Date.now() });
+    return { activities, isDemo: false };
+  } catch (err) {
+    console.error('[Garmin] fetchRecentActivities failed:', err);
+    return { activities: generateMockRecentActivities(days), isDemo: true };
+  }
 }

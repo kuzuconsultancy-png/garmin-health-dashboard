@@ -94,6 +94,31 @@ export interface UserProfile {
 
 export type DemoReason = 'no_credentials' | 'login_failed' | 'fetch_error';
 
+// ─── Training activity (14-day window for advice) ────────────────────────────
+export interface RecentActivity {
+  date: string;            // YYYY-MM-DD (local)
+  sportType: string;       // e.g. 'running', 'cycling', 'strength_training'
+  durationMinutes: number;
+  distanceKm: number;      // 0 when not applicable
+  averageHR: number;       // 0 when not available
+  maxHR: number;           // 0 when not available
+  trainingLoad?: number;   // aerobic + anaerobic effect sum, if available
+  calories: number;
+}
+
+// ─── Claude advice response ──────────────────────────────────────────────────
+export interface AdviceDay {
+  day: string;
+  advice: string;
+}
+
+export interface AdviceResponse {
+  summary: string;
+  next3days: AdviceDay[];
+  warnings: string[];
+  confidence: 'high' | 'medium' | 'low';
+}
+
 export interface DailyMetrics {
   date: string;
   isDemo: boolean;

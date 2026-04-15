@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, Moon, TrendingUp, Flame, User } from 'lucide-react';
+import { LayoutDashboard, Moon, TrendingUp, Flame, User, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
@@ -12,6 +12,7 @@ export default function BottomNav() {
 
   const NAV_ITEMS = [
     { href: '/', label: t('nav.home'), Icon: LayoutDashboard },
+    { href: '/advice', label: 'Advice', Icon: Sparkles },
     { href: '/sleep', label: t('nav.sleep'), Icon: Moon },
     { href: '/strain', label: t('nav.strain'), Icon: Flame },
     { href: '/trends', label: t('nav.trends'), Icon: TrendingUp },
