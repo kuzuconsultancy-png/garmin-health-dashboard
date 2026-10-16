@@ -12,7 +12,7 @@ export default function BottomNav() {
 
   const NAV_ITEMS = [
     { href: '/', label: t('nav.home'), Icon: LayoutDashboard },
-    { href: '/advice', label: 'Advice', Icon: Sparkles },
+    { href: '/advice', label: t('nav.advice'), Icon: Sparkles },
     { href: '/sleep', label: t('nav.sleep'), Icon: Moon },
     { href: '/strain', label: t('nav.strain'), Icon: Flame },
     { href: '/trends', label: t('nav.trends'), Icon: TrendingUp },

@@ -102,14 +102,74 @@ export interface RecentActivity {
   distanceKm: number;      // 0 when not applicable
   averageHR: number;       // 0 when not available
   maxHR: number;           // 0 when not available
-  trainingLoad?: number;   // aerobic + anaerobic effect sum, if available
+  trainingLoad?: number;   // Garmin EPOC-based training load (activityTrainingLoad)
+  aerobicTE?: number;      // Garmin aerobic training effect, 0–5
+  anaerobicTE?: number;    // Garmin anaerobic training effect, 0–5
   calories: number;
 }
 
+// ─── Coach metrics (deterministic, computed before the LLM call) ─────────────
+export type CoachFlagId =
+  | 'hrv_suppressed'
+  | 'rhr_elevated'
+  | 'short_sleep'
+  | 'sleep_debt'
+  | 'load_spike'
+  | 'no_rest'
+  | 'well_recovered';
+
+export interface CoachFlag {
+  id: CoachFlagId;
+  severity: 'alert' | 'warning' | 'positive';
+  value: number;           // the number that tripped the rule (%, bpm, h, days)
+}
+
+export interface CoachDay {
+  date: string;            // YYYY-MM-DD
+  hrv: number;             // ms, 0 = missing
+  rhr: number;             // bpm, 0 = missing
+  sleepHours: number;      // 0 = missing
+  recovery: number;        // 0–100, 0 = missing
+  activities: RecentActivity[];
+}
+
+export interface CoachMetrics {
+  today: string;           // YYYY-MM-DD the window ends on
+  load: {
+    unit: 'training_load' | 'minutes';
+    last7: number;         // sum over today-6 … today
+    prev7: number;         // sum over today-13 … today-7
+    rampPct: number | null; // (last7 - prev7) / prev7 × 100; null when prev7 = 0
+    sessionsLast7: number;
+    hardSessionsLast7: number;
+    consecutiveTrainingDays: number;
+    sportMinutes14d: Record<string, number>;
+  };
+  recovery: {
+    hrvLastNight: number;
+    hrvBaseline: number;   // mean of the previous 7 nights with data
+    hrvDeltaPct: number | null;
+    rhrToday: number;
+    rhrBaseline: number;
+    rhrDelta: number | null;
+    sleepLastNight: number;
+    sleepAvg7d: number;
+    sleepDebt7d: number;   // vs 8h/night, surplus nights offset deficit nights
+    recoveryToday: number;
+  };
+  coverage: { recoveryDays: number; activitiesWithHR: number; windowDays: number };
+  flags: CoachFlag[];
+  confidence: 'high' | 'medium' | 'low';
+}
+
 // ─── Claude advice response ──────────────────────────────────────────────────
+export type AdviceFocus = 'rest' | 'recovery' | 'easy' | 'moderate' | 'hard' | 'long';
+
 export interface AdviceDay {
-  day: string;
-  advice: string;
+  date: string;            // YYYY-MM-DD
+  focus: AdviceFocus;
+  session: string;         // concrete session: type, duration, intensity
+  why: string;             // grounded in the athlete's numbers
 }
 
 export interface AdviceResponse {
@@ -117,6 +177,14 @@ export interface AdviceResponse {
   next3days: AdviceDay[];
   warnings: string[];
   confidence: 'high' | 'medium' | 'low';
+}
+
+export interface AdvicePayload {
+  advice: AdviceResponse;
+  metrics: CoachMetrics;
+  generatedAt: string;
+  isDemo: boolean;
+  activityCount: number;
 }
 
 export interface DailyMetrics {

@@ -585,20 +585,20 @@ function generateMockRecentActivities(days: number): RecentActivity[] {
   // Realistic 14-day training pattern: 3 runs, 2 bikes, 1 strength, mix of rest
   const today = new Date();
   const plan: Array<Omit<RecentActivity, 'date'> | null> = [
-    { sportType: 'running',          durationMinutes: 42, distanceKm: 7.2,  averageHR: 152, maxHR: 174, trainingLoad: 85, calories: 450 },
+    { sportType: 'running',          durationMinutes: 42, distanceKm: 7.2,  averageHR: 152, maxHR: 174, trainingLoad: 85,  aerobicTE: 3.2, anaerobicTE: 0.8, calories: 450 },
     null, // rest
-    { sportType: 'cycling',          durationMinutes: 70, distanceKm: 28.5, averageHR: 138, maxHR: 162, trainingLoad: 110, calories: 680 },
-    { sportType: 'strength_training',durationMinutes: 50, distanceKm: 0,    averageHR: 118, maxHR: 148, trainingLoad: 45, calories: 320 },
+    { sportType: 'cycling',          durationMinutes: 70, distanceKm: 28.5, averageHR: 138, maxHR: 162, trainingLoad: 110, aerobicTE: 3.0, anaerobicTE: 0.4, calories: 680 },
+    { sportType: 'strength_training',durationMinutes: 50, distanceKm: 0,    averageHR: 118, maxHR: 148, trainingLoad: 45,  aerobicTE: 1.6, anaerobicTE: 1.2, calories: 320 },
     null,
-    { sportType: 'running',          durationMinutes: 58, distanceKm: 10.0, averageHR: 158, maxHR: 181, trainingLoad: 135, calories: 620 },
-    { sportType: 'running',          durationMinutes: 35, distanceKm: 5.8,  averageHR: 144, maxHR: 166, trainingLoad: 62, calories: 370 },
+    { sportType: 'running',          durationMinutes: 58, distanceKm: 10.0, averageHR: 158, maxHR: 181, trainingLoad: 135, aerobicTE: 4.1, anaerobicTE: 2.2, calories: 620 },
+    { sportType: 'running',          durationMinutes: 35, distanceKm: 5.8,  averageHR: 144, maxHR: 166, trainingLoad: 62,  aerobicTE: 2.6, anaerobicTE: 0.3, calories: 370 },
     null,
-    { sportType: 'cycling',          durationMinutes: 90, distanceKm: 36.0, averageHR: 142, maxHR: 168, trainingLoad: 155, calories: 890 },
-    { sportType: 'strength_training',durationMinutes: 45, distanceKm: 0,    averageHR: 115, maxHR: 142, trainingLoad: 40, calories: 280 },
+    { sportType: 'cycling',          durationMinutes: 90, distanceKm: 36.0, averageHR: 142, maxHR: 168, trainingLoad: 155, aerobicTE: 3.8, anaerobicTE: 1.0, calories: 890 },
+    { sportType: 'strength_training',durationMinutes: 45, distanceKm: 0,    averageHR: 115, maxHR: 142, trainingLoad: 40,  aerobicTE: 1.4, anaerobicTE: 1.1, calories: 280 },
     null,
-    { sportType: 'running',          durationMinutes: 48, distanceKm: 8.1,  averageHR: 154, maxHR: 178, trainingLoad: 98, calories: 510 },
+    { sportType: 'running',          durationMinutes: 48, distanceKm: 8.1,  averageHR: 154, maxHR: 178, trainingLoad: 98,  aerobicTE: 3.4, anaerobicTE: 1.5, calories: 510 },
     null,
-    { sportType: 'running',          durationMinutes: 75, distanceKm: 12.5, averageHR: 149, maxHR: 172, trainingLoad: 145, calories: 740 },
+    { sportType: 'running',          durationMinutes: 75, distanceKm: 12.5, averageHR: 149, maxHR: 172, trainingLoad: 145, aerobicTE: 4.0, anaerobicTE: 0.6, calories: 740 },
   ];
   const out: RecentActivity[] = [];
   for (let i = 0; i < days; i++) {
@@ -643,9 +643,10 @@ export async function fetchRecentActivities(days = 14): Promise<{ activities: Re
         const durSec = (act.duration ?? act.movingDuration ?? 0) as number;
         const distM  = (act.distance ?? 0) as number;
         const type   = act.activityType as Record<string, unknown> | undefined;
-        const aerobic   = (act.aerobicTrainingEffect ?? 0) as number;
-        const anaerobic = (act.anaerobicTrainingEffect ?? 0) as number;
-        const load = aerobic + anaerobic;
+        const aerobic   = Number(act.aerobicTrainingEffect ?? 0);
+        const anaerobic = Number(act.anaerobicTrainingEffect ?? 0);
+        // Garmin's EPOC-based training load (same scale as the watch's "Load")
+        const load = Number(act.activityTrainingLoad ?? 0);
 
         return {
           date: format(start, 'yyyy-MM-dd'),
@@ -654,7 +655,9 @@ export async function fetchRecentActivities(days = 14): Promise<{ activities: Re
           distanceKm: Math.round((distM / 1000) * 10) / 10,
           averageHR: Math.round((act.averageHR ?? act.averageHeartRateInBeatsPerMinute ?? 0) as number),
           maxHR: Math.round((act.maxHR ?? act.maxHeartRateInBeatsPerMinute ?? 0) as number),
-          trainingLoad: load > 0 ? Math.round(load * 10) / 10 : undefined,
+          trainingLoad: load > 0 ? Math.round(load) : undefined,
+          aerobicTE: aerobic > 0 ? Math.round(aerobic * 10) / 10 : undefined,
+          anaerobicTE: anaerobic > 0 ? Math.round(anaerobic * 10) / 10 : undefined,
           calories: Math.round((act.calories ?? 0) as number),
         } as RecentActivity;
       })

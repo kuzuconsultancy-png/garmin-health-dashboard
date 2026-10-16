@@ -11,7 +11,7 @@
     "test:ci": "jest --ci --coverage"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.89.0",
+    "@anthropic-ai/sdk": "^0.135.0",
     "@types/web-push": "^3.6.4",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",

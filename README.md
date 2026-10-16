@@ -29,12 +29,13 @@ A personal health dashboard that connects to Garmin Connect and displays your da
 | **Dashboard** | Recovery score, HRV, Sleep, Body Battery, Strain, Stress, Steps, Calories |
 | **Sleep** | Sleep stages (Deep / REM / Light / Awake), SpO₂, overnight HRV, 7-day trend |
 | **Strain** | Daily strain (0–21 scale), ACWR load ratio, activities breakdown |
-| **Trends** | 7 / 14 / 30-day sparklines, weekly AI summary (optional), PDF export |
+| **Advice** | 3-day training plan from your last 14 days of load + recovery (HRV, RHR, sleep) — optional, needs Anthropic API key |
+| **Trends** | 7 / 14 / 30-day sparklines, PDF export |
 | **Profile** | BMI, VO2max estimate, training zones, weight log |
 
 **Key features**
 - 🌐 English / Spanish toggle (auto-detects browser language)
-- 🤖 AI weekly summary via Claude Haiku (optional — requires Anthropic API key)
+- 🤖 Recovery-aware training advice via Claude (optional — requires Anthropic API key)
 - 📱 Installable PWA (iOS Safari & Android Chrome)
 - 🔔 Body Battery push notifications
 - 🎭 Full demo mode — works without Garmin credentials
@@ -48,7 +49,7 @@ A personal health dashboard that connects to Garmin Connect and displays your da
 - **Styling**: Tailwind CSS
 - **Charts**: Recharts
 - **Garmin**: `garmin-connect` npm package
-- **AI**: Anthropic Claude Haiku (optional)
+- **AI**: Anthropic Claude Sonnet (optional; model configurable via `ANTHROPIC_MODEL`)
 
 ---
 
@@ -62,7 +63,7 @@ Click the **Deploy with Vercel** button above. You'll be prompted for:
 |----------|----------|-------------|
 | `GARMIN_USERNAME` | No | Your Garmin Connect email |
 | `GARMIN_PASSWORD` | No | Your Garmin Connect password |
-| `ANTHROPIC_API_KEY` | No | For AI weekly summary (Claude Haiku) |
+| `ANTHROPIC_API_KEY` | No | For training advice (Claude) |
 
 Leave credentials empty to run in demo mode.
 
@@ -119,8 +120,10 @@ GARMIN_PASSWORD=yourpassword
 GARMIN_OAUTH1={"oauth_token":"...","oauth_token_secret":"..."}
 GARMIN_OAUTH2={"access_token":"...","refresh_token":"...","expires_at":...}
 
-# AI weekly summary (optional — feature hidden if not set)
+# Training advice (optional — the Advice page shows setup instructions if not set)
 ANTHROPIC_API_KEY=sk-ant-...
+# ANTHROPIC_MODEL=claude-sonnet-5-5   # optional override
+# ANTHROPIC_EFFORT=low                # optional: low | medium | high
 
 # Push notifications (optional — generated with npm run generate-vapid)
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=...
@@ -232,12 +235,13 @@ Dashboard personal de salud que se conecta a Garmin Connect y muestra tus métri
 | **Dashboard** | Recuperación, HRV, Sueño, Body Battery, Esfuerzo, Estrés, Pasos, Calorías |
 | **Sueño** | Fases del sueño (Profundo / REM / Ligero / Despierto), SpO₂, HRV nocturno, tendencia 7d |
 | **Esfuerzo** | Esfuerzo diario (escala 0–21), ratio ACWR, desglose de actividades |
-| **Tendencias** | Sparklines 7 / 14 / 30 días, resumen IA semanal (opcional), exportación PDF |
+| **Consejos** | Plan de entrenamiento de 3 días a partir de tus últimos 14 días de carga + recuperación (VFC, FC reposo, sueño) — opcional, requiere API key de Anthropic |
+| **Tendencias** | Sparklines 7 / 14 / 30 días, exportación PDF |
 | **Perfil** | IMC, estimación VO2max, zonas de entrenamiento, registro de peso |
 
 **Características principales**
 - 🌐 Toggle inglés / español (detecta el idioma del navegador automáticamente)
-- 🤖 Resumen semanal IA con Claude Haiku (opcional — requiere API key de Anthropic)
+- 🤖 Consejos de entrenamiento según tu recuperación, con Claude (opcional — requiere API key de Anthropic)
 - 📱 PWA instalable (iOS Safari y Android Chrome)
 - 🔔 Notificaciones push de Body Battery
 - 🎭 Modo demo completo — funciona sin credenciales de Garmin
@@ -251,7 +255,7 @@ Dashboard personal de salud que se conecta a Garmin Connect y muestra tus métri
 - **Estilos**: Tailwind CSS
 - **Gráficas**: Recharts
 - **Garmin**: paquete npm `garmin-connect`
-- **IA**: Anthropic Claude Haiku (opcional)
+- **IA**: Anthropic Claude Sonnet (opcional; modelo configurable con `ANTHROPIC_MODEL`)
 
 ---
 
@@ -265,7 +269,7 @@ Haz clic en el botón **Deploy with Vercel** de arriba. Se te pedirán:
 |----------|-----------|-------------|
 | `GARMIN_USERNAME` | No | Tu correo de Garmin Connect |
 | `GARMIN_PASSWORD` | No | Tu contraseña de Garmin Connect |
-| `ANTHROPIC_API_KEY` | No | Para el resumen IA semanal (Claude Haiku) |
+| `ANTHROPIC_API_KEY` | No | Para los consejos de entrenamiento (Claude) |
 
 Deja las credenciales vacías para ejecutar en modo demo.
 
@@ -322,8 +326,10 @@ GARMIN_PASSWORD=tucontraseña
 GARMIN_OAUTH1={"oauth_token":"...","oauth_token_secret":"..."}
 GARMIN_OAUTH2={"access_token":"...","refresh_token":"...","expires_at":...}
 
-# Resumen IA semanal (opcional — la función se oculta si no está configurado)
+# Consejos de entrenamiento (opcional — la página Consejos muestra instrucciones si no está configurado)
 ANTHROPIC_API_KEY=sk-ant-...
+# ANTHROPIC_MODEL=claude-sonnet-5-5   # opcional
+# ANTHROPIC_EFFORT=low                # opcional: low | medium | high
 
 # Notificaciones push (opcional — genera con npm run generate-vapid)
 NEXT_PUBLIC_VAPID_PUBLIC_KEY=...
