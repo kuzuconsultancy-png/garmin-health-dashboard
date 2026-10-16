@@ -12,8 +12,11 @@ interface Props {
 
 export default function WeeklyTrend({ trend }: Props) {
   const { t } = useLang();
-  const avg = (arr: number[]) =>
-    arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
+  // Ignore days without data (0) so a missed night doesn't drag the average down
+  const avg = (arr: number[]) => {
+    const v = arr.filter(x => x > 0);
+    return v.length ? Math.round(v.reduce((s, x) => s + x, 0) / v.length) : 0;
+  };
 
   const rows = [
     {

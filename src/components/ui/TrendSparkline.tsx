@@ -20,7 +20,8 @@ export default function TrendSparkline({
   referenceValue,
   referenceLabel,
 }: TrendSparklineProps) {
-  const chartData = data.map((v, i) => ({ v, label: labels[i] ?? '' }));
+  // 0 = no data for that day (watch not worn / not synced) — draw a gap, not a dip to zero
+  const chartData = data.map((v, i) => ({ v: v > 0 ? v : null, label: labels[i] ?? '' }));
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -65,6 +66,7 @@ export default function TrendSparkline({
           strokeWidth={2}
           fill={`url(#grad-${color.replace('#', '')})`}
           dot={false}
+          connectNulls
           isAnimationActive
         />
       </AreaChart>
