@@ -1,4 +1,4 @@
-import type { ActivityAnalysis, ActivityStreams, ChartPoint, Split } from './types';
+import type { ActivityAnalysis, ActivityStreams, ChartPoint, HrRef, Split } from './types';
 import { zoneOf } from './effort';
 import { bestEfforts } from './bestEfforts';
 import { paceZoneSpeeds } from './predictions';
@@ -101,12 +101,12 @@ export function overallGap(splits: Split[]): number | null {
 
 // ── Zones ───────────────────────────────────────────────────────────────────
 
-/** Seconds in HR zones 1–5 (% of max HR, Garmin defaults). Time below zone 1 is dropped. */
-export function hrZoneSeconds(t: number[], hr: number[], hrMax: number): number[] {
+/** Seconds in HR zones 1–5 (Garmin's zones, or default % of max HR). Time below zone 1 is dropped. */
+export function hrZoneSeconds(t: number[], hr: number[], zones: HrRef): number[] {
   const out = [0, 0, 0, 0, 0];
   for (let k = 1; k < Math.min(t.length, hr.length); k++) {
     const dt = t[k] - t[k - 1];
-    const z = hr[k] > 0 ? zoneOf(hr[k], hrMax) : 0;
+    const z = hr[k] > 0 ? zoneOf(hr[k], zones) : 0;
     if (dt > 0 && dt < 30 && z > 0) out[z - 1] += dt;
   }
   return out.map(Math.round);
@@ -191,7 +191,7 @@ export function chartSeries(s: ActivityStreams, points = 200): ChartPoint[] {
 /** Everything the activity page shows, from one stream fetch. */
 export function analyzeActivity(
   s: ActivityStreams,
-  opts: { isRun: boolean; hrMax: number; vdot: number | null; splitM?: number },
+  opts: { isRun: boolean; zones: HrRef; vdot: number | null; splitM?: number },
 ): ActivityAnalysis {
   const hasDist = s.dist.length > 1 && s.dist[s.dist.length - 1] > 100;
   const splits = hasDist ? computeSplits(s, opts.splitM ?? 1000) : [];
@@ -201,7 +201,7 @@ export function analyzeActivity(
     splits,
     paceSecPerKm: totalDist > 0 ? Math.round((totalTime / totalDist) * 1000) : null,
     gapSecPerKm: opts.isRun ? overallGap(splits) : null,
-    hrZoneSec: s.hr && s.hr.some(h => h > 0) ? hrZoneSeconds(s.t, s.hr, opts.hrMax) : null,
+    hrZoneSec: s.hr && s.hr.some(h => h > 0) ? hrZoneSeconds(s.t, s.hr, opts.zones) : null,
     paceZoneSec: opts.isRun && s.speed && opts.vdot ? paceZoneSeconds(s.t, s.speed, opts.vdot) : null,
     bestEfforts: opts.isRun && hasDist ? bestEfforts(s.t, s.dist) : [],
     hrDriftPct: s.hr && s.speed ? hrDrift(s.t, s.hr, s.speed) : null,

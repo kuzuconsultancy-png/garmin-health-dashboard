@@ -1,4 +1,4 @@
-import type { ActivitySummary, Sport } from './types';
+import type { ActivitySummary, HrRef, Sport } from './types';
 
 // Effort = Edwards TRIMP: minutes in HR zone k × k (k = 1…5). Same idea as
 // Strava's Relative Effort (HR-zone weighted time); Strava's exact weights are
@@ -30,11 +30,19 @@ export function estimateHRMax(activities: ActivitySummary[], age?: number): numb
   return best >= 150 ? best : 190;
 }
 
+/** Zone 1–5 floors in bpm: Garmin's configured zones, or default % of max HR. */
+export function zoneFloors(ref: HrRef): number[] {
+  return typeof ref === 'number' ? ZONE_LOWER_PCT.map(p => p * ref) : ref.floors;
+}
+
+export function hrMaxOf(ref: HrRef): number {
+  return typeof ref === 'number' ? ref : ref.hrMax;
+}
+
 /** 0 = below zone 1, else 1–5. */
-export function zoneOf(hr: number, hrMax: number): number {
-  const pct = hr / hrMax;
+export function zoneOf(hr: number, ref: HrRef): number {
   let z = 0;
-  ZONE_LOWER_PCT.forEach((lo, i) => { if (pct >= lo) z = i + 1; });
+  zoneFloors(ref).forEach((lo, i) => { if (hr >= lo) z = i + 1; });
   return z;
 }
 
@@ -48,13 +56,13 @@ export interface ActivityEffort {
 }
 
 /** Uses Garmin's time-in-zone when present; otherwise puts the whole session in the zone of its average HR. */
-export function activityEffort(a: ActivitySummary, hrMax: number): ActivityEffort {
-  const zones = a.hrZoneSec;
-  if (zones && zones.length === 5 && zones.some(s => s > 0)) {
-    return { effort: effortFromZones(zones), source: 'zones' };
+export function activityEffort(a: ActivitySummary, zones: HrRef): ActivityEffort {
+  const zoneSec = a.hrZoneSec;
+  if (zoneSec && zoneSec.length === 5 && zoneSec.some(s => s > 0)) {
+    return { effort: effortFromZones(zoneSec), source: 'zones' };
   }
   if (a.avgHR > 0 && a.durationSec > 0) {
-    return { effort: Math.round((a.durationSec / 60) * zoneOf(a.avgHR, hrMax)), source: 'avgHR' };
+    return { effort: Math.round((a.durationSec / 60) * zoneOf(a.avgHR, zones)), source: 'avgHR' };
   }
   return { effort: null, source: null };
 }

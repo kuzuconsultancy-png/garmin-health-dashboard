@@ -5,6 +5,16 @@ export type Sport = 'running' | 'cycling' | 'swimming' | 'walking' | 'hiking' | 
 
 export const SPORTS: Sport[] = ['running', 'cycling', 'swimming', 'walking', 'hiking', 'strength', 'other'];
 
+/** Heart-rate zones: Garmin's configured zone floors (bpm, Z1–Z5) and max HR. */
+export interface HrZones {
+  hrMax: number;
+  floors: number[];
+  source: 'garmin' | 'estimate';
+}
+
+/** A max HR (→ Garmin's default %-of-max zones) or explicit zones. */
+export type HrRef = number | HrZones;
+
 export interface ActivitySummary {
   id: string;
   name: string;

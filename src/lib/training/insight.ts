@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
-import type { ActivityAnalysis, ActivitySummary } from './types';
-import { activityEffort } from './effort';
+import type { ActivityAnalysis, ActivitySummary, HrRef } from './types';
+import { activityEffort, hrMaxOf } from './effort';
 import { EFFORT_LABELS } from './format';
 
 // Everything the activity-insight prompt needs, computed in code: comparison
@@ -34,19 +34,19 @@ export function buildInsightInput(p: {
   activity: ActivitySummary;
   analysis: ActivityAnalysis | null;
   history: ActivitySummary[];
-  hrMax: number;
+  zones: HrRef;
   prs: InsightPR[];
   recovery: InsightRecovery | null;
   language: 'en' | 'es';
 }) {
   const a = p.activity;
-  const effort = activityEffort(a, p.hrMax).effort;
+  const effort = activityEffort(a, p.zones).effort;
   const similar = p.history
     .filter(h => h.sport === a.sport && h.id !== a.id && h.startTimeLocal < a.startTimeLocal)
     .slice(-10);
   const withDist = similar.filter(h => h.distanceM > 0);
   const withHR = similar.filter(h => h.avgHR > 0);
-  const simEfforts = similar.map(h => activityEffort(h, p.hrMax).effort).filter((e): e is number => e !== null);
+  const simEfforts = similar.map(h => activityEffort(h, p.zones).effort).filter((e): e is number => e !== null);
 
   const thisPace = paceOf(a.durationSec, a.distanceM);
   const avgPace = withDist.length
@@ -78,7 +78,7 @@ export function buildInsightInput(p: {
       gapSecPerKm: an?.gapSecPerKm ?? null,
       avgHR: a.avgHR || null,
       maxHR: a.maxHR || null,
-      hrMax: p.hrMax,
+      hrMax: hrMaxOf(p.zones),
       elevationGainM: a.elevationGainM,
       effort,
       garminTrainingLoad: a.trainingLoad ?? null,

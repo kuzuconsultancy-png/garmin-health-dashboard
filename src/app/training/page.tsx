@@ -10,7 +10,7 @@ import GoalsTab from '@/components/training/GoalsTab';
 import ProgressTab from '@/components/training/ProgressTab';
 import RecordsTab from '@/components/training/RecordsTab';
 import { Segmented } from '@/components/training/shared';
-import { useActivities, useBestEfforts, useHRMax, useVdot } from '@/lib/training/hooks';
+import { useActivities, useBestEfforts, useZones, useVdot } from '@/lib/training/hooks';
 import { useLang } from '@/lib/i18n';
 
 type Tab = 'fitness' | 'log' | 'goals' | 'progress' | 'records';
@@ -19,8 +19,8 @@ const TAB_KEY = 'training_tab';
 
 export default function TrainingPage() {
   const { t } = useLang();
-  const { activities, isDemo, today, loading, error } = useActivities();
-  const hrMax = useHRMax(activities);
+  const { activities, isDemo, today, garminZones, loading, error } = useActivities();
+  const zones = useZones(activities, garminZones);
   const efforts = useBestEfforts(activities, today);
   const vdot = useVdot(activities, efforts.all, today);
   const [tab, setTab] = useState<Tab>('fitness');
@@ -74,8 +74,8 @@ export default function TrainingPage() {
         )}
         {!loading && !error && (
           <>
-            {tab === 'fitness' && <FitnessTab activities={activities} hrMax={hrMax} today={today} />}
-            {tab === 'log' && <LogTab activities={activities} hrMax={hrMax} today={today} />}
+            {tab === 'fitness' && <FitnessTab activities={activities} zones={zones} today={today} />}
+            {tab === 'log' && <LogTab activities={activities} zones={zones} today={today} />}
             {tab === 'goals' && <GoalsTab activities={activities} today={today} />}
             {tab === 'progress' && <ProgressTab activities={activities} today={today} />}
             {tab === 'records' && <RecordsTab activities={activities} today={today} efforts={efforts.all} progress={efforts} vdot={vdot} />}

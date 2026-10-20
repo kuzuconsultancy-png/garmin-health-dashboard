@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ACTIVITY_ID, fetchActivityHistory, fetchActivityStreams } from '@/lib/activities';
+import { ACTIVITY_ID, fetchActivityHistory, fetchActivityStreams, fetchHeartRateZones } from '@/lib/activities';
 import { resolveToday } from '@/lib/dates';
 import { analyzeActivity } from '@/lib/training/analysis';
 import { estimateHRMax } from '@/lib/training/effort';
@@ -21,15 +21,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const hrMaxParam = Number(q.get('hrMax'));
   const vdotParam = Number(q.get('vdot'));
   const hrMax = hrMaxParam >= 140 && hrMaxParam <= 230 ? hrMaxParam : estimateHRMax(activities);
+  const zones = (await fetchHeartRateZones()) ?? hrMax;
   const vdot = vdotParam >= 20 && vdotParam <= 90 ? vdotParam : null;
 
   try {
     const streams = await fetchActivityStreams(summary);
     const splitM = summary.sport === 'cycling' ? 5000 : 1000;
-    const analysis = streams ? analyzeActivity(streams, { isRun: summary.sport === 'running', hrMax, vdot, splitM }) : null;
-    return NextResponse.json({ summary, analysis, hrMax, vdot, isDemo });
+    const analysis = streams ? analyzeActivity(streams, { isRun: summary.sport === 'running', zones, vdot, splitM }) : null;
+    return NextResponse.json({ summary, analysis, zones, vdot, isDemo });
   } catch (err) {
     console.error('[api/activities/:id] streams failed:', err instanceof Error ? err.message : err);
-    return NextResponse.json({ summary, analysis: null, hrMax, vdot, isDemo });
+    return NextResponse.json({ summary, analysis: null, zones, vdot, isDemo });
   }
 }

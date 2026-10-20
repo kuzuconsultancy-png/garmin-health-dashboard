@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { betaJSONSchemaOutputFormat } from '@anthropic-ai/sdk/helpers/beta/json-schema';
-import { ACTIVITY_ID, fetchActivityHistory, fetchActivityStreams } from '@/lib/activities';
+import { ACTIVITY_ID, fetchActivityHistory, fetchActivityStreams, fetchHeartRateZones } from '@/lib/activities';
 import { fetchTrendData } from '@/lib/garmin';
 import { resolveToday } from '@/lib/dates';
 import { CLAUDE_EFFORT, CLAUDE_MODEL, anthropicKey } from '@/lib/claude';
@@ -79,14 +79,15 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   const hrMax = typeof body.hrMax === 'number' && body.hrMax >= 140 && body.hrMax <= 230 ? body.hrMax : estimateHRMax(activities);
   const vdot = typeof body.vdot === 'number' && body.vdot >= 20 && body.vdot <= 90 ? body.vdot : null;
 
+  const zones = (await fetchHeartRateZones()) ?? hrMax;
   const [streams, recovery] = await Promise.all([
     fetchActivityStreams(activity).catch(() => null),
     recoveryOn(activity.date),
   ]);
   const analysis = streams
-    ? analyzeActivity(streams, { isRun: activity.sport === 'running', hrMax, vdot, splitM: activity.sport === 'cycling' ? 5000 : 1000 })
+    ? analyzeActivity(streams, { isRun: activity.sport === 'running', zones, vdot, splitM: activity.sport === 'cycling' ? 5000 : 1000 })
     : null;
-  const input = buildInsightInput({ activity, analysis, history: activities, hrMax, prs: sanitizePRs(body.prs), recovery, language });
+  const input = buildInsightInput({ activity, analysis, history: activities, zones, prs: sanitizePRs(body.prs), recovery, language });
 
   try {
     const client = new Anthropic({ apiKey });

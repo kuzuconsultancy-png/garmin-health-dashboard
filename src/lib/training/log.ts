@@ -1,5 +1,5 @@
 import { addDays, format, parseISO, startOfWeek } from 'date-fns';
-import type { ActivitySummary, Sport } from './types';
+import type { ActivitySummary, HrRef, Sport } from './types';
 import { activityEffort } from './effort';
 
 export interface LogSession extends ActivitySummary {
@@ -33,12 +33,12 @@ function add(t: LogTotals, s: LogSession) {
 }
 
 /** The last `weeks` Mon–Sun weeks ending with the week containing `today`. Newest first. */
-export function buildTrainingLog(activities: ActivitySummary[], hrMax: number, today: string, weeks = 12): LogWeek[] {
+export function buildTrainingLog(activities: ActivitySummary[], zones: HrRef, today: string, weeks = 12): LogWeek[] {
   const thisMonday = startOfWeek(parseISO(today), { weekStartsOn: 1 });
   const byDate = new Map<string, LogSession[]>();
   for (const a of activities) {
     const list = byDate.get(a.date) ?? [];
-    list.push({ ...a, effort: activityEffort(a, hrMax).effort });
+    list.push({ ...a, effort: activityEffort(a, zones).effort });
     byDate.set(a.date, list);
   }
 

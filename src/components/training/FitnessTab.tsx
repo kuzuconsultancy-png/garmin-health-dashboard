@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { format, parseISO, subDays } from 'date-fns';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, ReferenceLine, CartesianGrid } from 'recharts';
 import { TrendingUp, Flame } from 'lucide-react';
-import type { ActivitySummary } from '@/lib/training/types';
+import type { ActivitySummary, HrRef } from '@/lib/training/types';
 import { dailyLoads, fitnessSeries, weeklyEfforts } from '@/lib/training/fitness';
 import { activityEffort } from '@/lib/training/effort';
 import { useLang } from '@/lib/i18n';
@@ -22,7 +22,7 @@ function formZone(form: number): { key: 'fresh' | 'neutral' | 'optimal' | 'risk'
 
 const STATUS_COLOR = { recovery: '#a3a3a3', maintain: '#4ade80', build: '#facc15', spike: '#f87171', none: '#525252', inProgress: '#a3a3a3' } as const;
 
-export default function FitnessTab({ activities, hrMax, today }: { activities: ActivitySummary[]; hrMax: number; today: string }) {
+export default function FitnessTab({ activities, zones, today }: { activities: ActivitySummary[]; zones: HrRef; today: string }) {
   const { t } = useLang();
   const fmt = useDateFormat();
   const [range, setRange] = useState<'90' | '180'>('90');
@@ -31,14 +31,14 @@ export default function FitnessTab({ activities, hrMax, today }: { activities: A
     const days = Number(range);
     const end = parseISO(today);
     const from = format(subDays(end, days - 1 + WARMUP_DAYS), 'yyyy-MM-dd');
-    return fitnessSeries(dailyLoads(activities, hrMax, from, today)).slice(-days);
-  }, [activities, hrMax, today, range]);
+    return fitnessSeries(dailyLoads(activities, zones, from, today)).slice(-days);
+  }, [activities, zones, today, range]);
 
-  const weeks = useMemo(() => weeklyEfforts(activities, hrMax, today, 12), [activities, hrMax, today]);
+  const weeks = useMemo(() => weeklyEfforts(activities, zones, today, 12), [activities, zones, today]);
   const recent = useMemo(() => [...activities].reverse().slice(0, 8), [activities]);
   const noHR = useMemo(
-    () => activities.filter(a => a.date >= format(subDays(parseISO(today), 89), 'yyyy-MM-dd') && activityEffort(a, hrMax).effort === null).length,
-    [activities, hrMax, today],
+    () => activities.filter(a => a.date >= format(subDays(parseISO(today), 89), 'yyyy-MM-dd') && activityEffort(a, zones).effort === null).length,
+    [activities, zones, today],
   );
 
   const now = series[series.length - 1];
@@ -164,7 +164,7 @@ export default function FitnessTab({ activities, hrMax, today }: { activities: A
       {/* Recent activities */}
       <div className="card">
         <div className="card-header"><span>{t('training.fitness.recent')}</span></div>
-        {recent.map(a => <ActivityRow key={a.id} a={a} effort={activityEffort(a, hrMax).effort} />)}
+        {recent.map(a => <ActivityRow key={a.id} a={a} effort={activityEffort(a, zones).effort} />)}
       </div>
     </div>
   );

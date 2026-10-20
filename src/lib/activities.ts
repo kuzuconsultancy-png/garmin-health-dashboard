@@ -1,6 +1,6 @@
 import { format, parseISO, startOfYear, subDays, subYears } from 'date-fns';
 import { getClient } from './garmin';
-import type { ActivitySummary, ActivityStreams } from './training/types';
+import type { ActivitySummary, ActivityStreams, HrZones } from './training/types';
 import { sportOf } from './training/effort';
 import { generateDemoHistory, generateDemoStreams } from './training/demo';
 
@@ -177,6 +177,8 @@ export function parseActivityDetails(raw: Record<string, unknown>): ActivityStre
 const streamCache = new Map<string, ActivityStreams>();
 const STREAM_CACHE_MAX = 40;
 
+// maxChartSize 2000 = the default python-garminconnect / garth use against the live API.
+// Garmin downsamples to ≤ 2000 points (≈2 s on a 1 h run); best efforts interpolate between them.
 export async function fetchActivityStreams(a: ActivitySummary): Promise<ActivityStreams | null> {
   if (a.id.startsWith('demo-')) return generateDemoStreams(a);
   if (!ACTIVITY_ID.test(a.id)) return null;
@@ -186,11 +188,49 @@ export async function fetchActivityStreams(a: ActivitySummary): Promise<Activity
   const client = await getClient();
   if (!client) return null;
   const gc = client as GCClient;
-  const raw = await gc.get(`${GC_API}/activity-service/activity/${a.id}/details?maxChartSize=10000&maxPolylineSize=100`);
+  const raw = await gc.get(`${GC_API}/activity-service/activity/${a.id}/details?maxChartSize=2000&maxPolylineSize=100`);
   const streams = raw && typeof raw === 'object' ? parseActivityDetails(raw as Record<string, unknown>) : null;
   if (streams) {
     if (streamCache.size >= STREAM_CACHE_MAX) streamCache.delete(streamCache.keys().next().value as string);
     streamCache.set(a.id, streams);
   }
   return streams;
+}
+
+// ── Heart-rate zones configured in Garmin Connect ───────────────────────────
+
+/**
+ * GET /biometric-service/heartRateZones → one object per sport profile with
+ * zone1Floor…zone5Floor (bpm) and maxHeartRateUsed. Prefers DEFAULT, then RUNNING.
+ */
+export function parseHeartRateZones(raw: unknown): HrZones | null {
+  if (!Array.isArray(raw)) return null;
+  const valid = raw.filter((z): z is Record<string, unknown> => {
+    if (!z || typeof z !== 'object') return false;
+    const f = [1, 2, 3, 4, 5].map(i => (z as Record<string, unknown>)[`zone${i}Floor`]);
+    return f.every(v => typeof v === 'number' && v > 30 && v < 240) && f.every((v, i) => i === 0 || (v as number) > (f[i - 1] as number));
+  });
+  const pick = valid.find(z => z.sport === 'DEFAULT') ?? valid.find(z => z.sport === 'RUNNING') ?? valid[0];
+  if (!pick) return null;
+  const floors = [1, 2, 3, 4, 5].map(i => pick[`zone${i}Floor`] as number);
+  const max = typeof pick.maxHeartRateUsed === 'number' && pick.maxHeartRateUsed > floors[4] ? pick.maxHeartRateUsed : floors[4] + 15;
+  return { hrMax: max, floors, source: 'garmin' };
+}
+
+let zonesCache: { zones: HrZones | null; ts: number } | null = null;
+const ZONES_TTL = 6 * 60 * 60 * 1000;
+
+export async function fetchHeartRateZones(): Promise<HrZones | null> {
+  if (zonesCache && Date.now() - zonesCache.ts < ZONES_TTL) return zonesCache.zones;
+  const client = await getClient();
+  if (!client) return null;
+  try {
+    const raw = await (client as GCClient).get(`${GC_API}/biometric-service/heartRateZones`);
+    const zones = parseHeartRateZones(raw);
+    zonesCache = { zones, ts: Date.now() };
+    return zones;
+  } catch (err) {
+    console.error('[activities] HR zones fetch failed:', err instanceof Error ? err.message : err);
+    return null;
+  }
 }

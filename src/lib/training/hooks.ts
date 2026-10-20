@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format, subDays } from 'date-fns';
-import type { ActivitySummary, BestEffort, Goal, StoredEffort } from './types';
+import type { ActivitySummary, BestEffort, Goal, HrRef, HrZones, StoredEffort } from './types';
 import { estimateHRMax } from './effort';
 import { bestVdotEffort } from './predictions';
 import { useProfile } from '../useProfile';
@@ -11,7 +11,7 @@ export const localToday = () => format(new Date(), 'yyyy-MM-dd');
 
 // ── Activity history (one request per page load, shared by all components) ──
 
-interface HistoryResponse { activities: ActivitySummary[]; isDemo: boolean; since: string; today: string }
+interface HistoryResponse { activities: ActivitySummary[]; isDemo: boolean; since: string; today: string; zones: HrZones | null }
 let historyPromise: Promise<HistoryResponse> | null = null;
 let historyDay = '';
 
@@ -40,15 +40,19 @@ export function useActivities() {
     activities: data?.activities ?? [],
     isDemo: data?.isDemo ?? false,
     today: data?.today ?? localToday(),
+    garminZones: data?.zones ?? null,
     loading: !data && !error,
     error,
   };
 }
 
-/** Max HR from recorded activities and the profile's age. */
-export function useHRMax(activities: ActivitySummary[]): number {
+/** HR zones configured in Garmin Connect; otherwise max HR estimated from activities + profile age. */
+export function useZones(activities: ActivitySummary[], garminZones: HrZones | null): HrRef {
   const { profile } = useProfile();
-  return useMemo(() => estimateHRMax(activities, profile?.age), [activities, profile?.age]);
+  return useMemo(
+    () => garminZones ?? estimateHRMax(activities, profile?.age),
+    [activities, garminZones, profile?.age],
+  );
 }
 
 // ── Best efforts: computed server-side per run, stored in this browser ──────

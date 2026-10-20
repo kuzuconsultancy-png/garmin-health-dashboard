@@ -34,7 +34,7 @@ describe('buildInsightInput', () => {
   test('compares with earlier same-sport sessions only', () => {
     const input = buildInsightInput({
       activity: history[3], analysis: analysis([292, 291, 290, 287, 285, 290, 290, 290, 290, 285]),
-      history, hrMax: 190, prs: [{ distM: 5000, timeSec: 1440, rank: 1 }],
+      history, zones: 190, prs: [{ distM: 5000, timeSec: 1440, rank: 1 }],
       recovery: { hrvLastNight: 40, hrvBaseline: 50, sleepHours: 6.5 }, language: 'es',
     });
     // previous runs a, b: 6100 s over 20 km → 305 s/km; this one 290 → −15
@@ -49,7 +49,7 @@ describe('buildInsightInput', () => {
   });
 
   test('no comparison block for a first session of its sport', () => {
-    const input = buildInsightInput({ activity: history[2], analysis: null, history, hrMax: 190, prs: [], recovery: null, language: 'en' });
+    const input = buildInsightInput({ activity: history[2], analysis: null, history, zones: 190, prs: [], recovery: null, language: 'en' });
     expect(input.comparedToLast).toBeNull();
     expect(input.pacing).toBeNull();
   });

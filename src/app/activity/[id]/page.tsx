@@ -7,8 +7,8 @@ import { ResponsiveContainer, LineChart, Line, AreaChart, Area, XAxis, YAxis, To
 import { ArrowLeft, Sparkles, Loader2, AlertCircle, Trophy, RefreshCw } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 import { SPORT_META, SERIES, StatTile, speedLabel, tooltipStyle, useDateFormat } from '@/components/training/shared';
-import { useActivities, useBestEfforts, useHRMax, useVdot } from '@/lib/training/hooks';
-import { activityEffort } from '@/lib/training/effort';
+import { useActivities, useBestEfforts, useZones, useVdot } from '@/lib/training/hooks';
+import { activityEffort, hrMaxOf } from '@/lib/training/effort';
 import { prRank } from '@/lib/training/bestEfforts';
 import { EFFORT_LABELS, formatDuration, formatKm, formatPace } from '@/lib/training/format';
 import type { ActivityAnalysis, ActivitySummary, StoredEffort } from '@/lib/training/types';
@@ -60,8 +60,9 @@ export default function ActivityPage() {
   const { id } = useParams<{ id: string }>();
   const { t, locale } = useLang();
   const fmt = useDateFormat();
-  const { activities, today, loading: historyLoading } = useActivities();
-  const hrMax = useHRMax(activities);
+  const { activities, today, garminZones, loading: historyLoading } = useActivities();
+  const zones = useZones(activities, garminZones);
+  const hrMax = hrMaxOf(zones); // server prefers Garmin's own zones; this is the fallback
   const efforts = useBestEfforts(activities, today);
   const vdot = useVdot(activities, efforts.all, today);
 
@@ -131,7 +132,7 @@ export default function ActivityPage() {
   const meta = summary ? SPORT_META[summary.sport] : null;
   const isRun = summary?.sport === 'running';
   const isRide = summary?.sport === 'cycling';
-  const effort = summary ? activityEffort(summary, hrMax).effort : null;
+  const effort = summary ? activityEffort(summary, zones).effort : null;
   const chart = analysis?.chart ?? [];
   const hasHR = chart.some(p => p.hr);
   const hasEle = chart.some(p => p.ele !== null);

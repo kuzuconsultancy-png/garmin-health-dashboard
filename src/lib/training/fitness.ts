@@ -1,5 +1,5 @@
 import { addDays, format, parseISO, startOfWeek, differenceInCalendarDays } from 'date-fns';
-import type { ActivitySummary } from './types';
+import type { ActivitySummary, HrRef } from './types';
 import { activityEffort, weeklyEffortStatus, type WeekStatus } from './effort';
 
 // Fitness & Freshness (Banister impulse-response, as in TrainingPeaks/Strava):
@@ -28,11 +28,11 @@ export function dateRange(from: string, to: string): string[] {
 }
 
 /** Daily effort totals for every day in [from, to] (0 on rest days). */
-export function dailyLoads(activities: ActivitySummary[], hrMax: number, from: string, to: string): { date: string; load: number }[] {
+export function dailyLoads(activities: ActivitySummary[], zones: HrRef, from: string, to: string): { date: string; load: number }[] {
   const byDate = new Map<string, number>();
   for (const a of activities) {
     if (a.date < from || a.date > to) continue;
-    const { effort } = activityEffort(a, hrMax);
+    const { effort } = activityEffort(a, zones);
     if (effort) byDate.set(a.date, (byDate.get(a.date) ?? 0) + effort);
   }
   return dateRange(from, to).map(date => ({ date, load: byDate.get(date) ?? 0 }));
@@ -60,7 +60,7 @@ export interface EffortWeek {
 }
 
 /** Weekly effort totals (Mon–Sun) with the range from the previous 3 weeks. Newest last. */
-export function weeklyEfforts(activities: ActivitySummary[], hrMax: number, today: string, weeks = 12): EffortWeek[] {
+export function weeklyEfforts(activities: ActivitySummary[], zones: HrRef, today: string, weeks = 12): EffortWeek[] {
   const thisMonday = startOfWeek(parseISO(today), { weekStartsOn: 1 });
   const total = weeks + 3; // 3 extra weeks to seed the first range
   const starts = Array.from({ length: total }, (_, i) => iso(addDays(thisMonday, -7 * (total - 1 - i))));
@@ -68,7 +68,7 @@ export function weeklyEfforts(activities: ActivitySummary[], hrMax: number, toda
     const we = iso(addDays(parseISO(ws), 6));
     return activities
       .filter(a => a.date >= ws && a.date <= we)
-      .reduce((s, a) => s + (activityEffort(a, hrMax).effort ?? 0), 0);
+      .reduce((s, a) => s + (activityEffort(a, zones).effort ?? 0), 0);
   });
   return starts.slice(3).map((weekStart, i) => {
     const effort = sums[i + 3];

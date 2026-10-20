@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { SPORTS, type ActivitySummary, type Sport } from '@/lib/training/types';
+import { SPORTS, type ActivitySummary, type HrRef, type Sport } from '@/lib/training/types';
 import { buildTrainingLog } from '@/lib/training/log';
 import { formatHours, formatKm } from '@/lib/training/format';
 import { useLang } from '@/lib/i18n';
@@ -11,11 +11,11 @@ import { SPORT_META, useDateFormat } from './shared';
 /** Bubble diameter: area ∝ effort (sqrt), clamped 14–40 px. Sessions without HR get the minimum. */
 const bubbleSize = (effort: number | null) => Math.max(14, Math.min(40, Math.sqrt(effort ?? 0) * 2.6));
 
-export default function LogTab({ activities, hrMax, today }: { activities: ActivitySummary[]; hrMax: number; today: string }) {
+export default function LogTab({ activities, zones, today }: { activities: ActivitySummary[]; zones: HrRef; today: string }) {
   const { t } = useLang();
   const fmt = useDateFormat();
   const [weeks, setWeeks] = useState(12);
-  const log = useMemo(() => buildTrainingLog(activities, hrMax, today, weeks), [activities, hrMax, today, weeks]);
+  const log = useMemo(() => buildTrainingLog(activities, zones, today, weeks), [activities, zones, today, weeks]);
   const sportsPresent = useMemo(() => SPORTS.filter(s => activities.some(a => a.sport === s)), [activities]);
   const dayLetters = log[0]?.days.map(d => fmt(d.date, { weekday: 'narrow' })) ?? [];
 

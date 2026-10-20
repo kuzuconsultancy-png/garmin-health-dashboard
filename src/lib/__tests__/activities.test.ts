@@ -1,4 +1,5 @@
-import { historyStart, parseActivitySummary, parseActivityDetails, ACTIVITY_ID } from '../activities';
+import { historyStart, parseActivitySummary, parseActivityDetails, parseHeartRateZones, ACTIVITY_ID } from '../activities';
+import { zoneOf, activityEffort } from '../training/effort';
 import { generateDemoHistory, generateDemoStreams } from '../training/demo';
 import { analyzeActivity } from '../training/analysis';
 
@@ -100,10 +101,54 @@ describe('demo data', () => {
     const s = generateDemoStreams(run);
     expect(s.dist.at(-1)).toBeCloseTo(run.distanceM, 0);
     expect(s.t.at(-1)).toBeLessThanOrEqual(run.durationSec);
-    const an = analyzeActivity(s, { isRun: true, hrMax: 190, vdot: 50 });
+    const an = analyzeActivity(s, { isRun: true, zones: 190, vdot: 50 });
     expect(an.splits.length).toBe(Math.floor(run.distanceM / 1000) + (run.distanceM % 1000 >= 100 ? 1 : 0));
     expect(an.bestEfforts.find(e => e.distM === 1000)!.timeSec).toBeLessThan(run.durationSec / (run.distanceM / 1000));
     expect(an.hrZoneSec!.reduce((x, y) => x + y, 0)).toBeGreaterThan(0);
     expect(an.paceZoneSec!.reduce((x, y) => x + y, 0)).toBeGreaterThan(0);
+  });
+});
+
+// Field values below are copied from a real recorded Garmin Connect response
+// (matin/garth test cassettes: activity list + GET /biometric-service/heartRateZones).
+describe('real Garmin payloads', () => {
+  test('activity list entry (trail run, recorded)', () => {
+    const a = parseActivitySummary({
+      activityId: 21482825013, activityName: 'Trail run', startTimeLocal: '2026-01-08 08:10:21',
+      activityType: { typeId: 6, typeKey: 'trail_running', parentTypeId: 1, isHidden: false },
+      distance: 4261.18994140625, duration: 2223.326904296875, movingDuration: 2216.0, elapsedDuration: 2225.44091796875,
+      elevationGain: 151.0, averageHR: 142.0, maxHR: 162.0, averageSpeed: 1.9170000553131106, calories: 390.0,
+      activityTrainingLoad: 50.886444091796875, aerobicTrainingEffect: 2.700000047683716, anaerobicTrainingEffect: 0.0,
+      vO2MaxValue: 45.0, hrTimeInZone_1: 376.545, hrTimeInZone_2: 1601.888, hrTimeInZone_3: 0, hrTimeInZone_4: 0, hrTimeInZone_5: 0.0,
+      powerTimeInZone_1: 0,
+    })!;
+    expect(a).toMatchObject({
+      sport: 'running', durationSec: 2223, distanceM: 4261, trainingLoad: 51, aerobicTE: 2.7, vo2max: 45,
+      hrZoneSec: [377, 1602, 0, 0, 0],
+    });
+    expect(a).not.toHaveProperty('anaerobicTE'); // 0.0 = none
+    // effort = 377/60·1 + 1602/60·2 = 6.3 + 53.4 = 59.7 → 60
+    expect(activityEffort(a, 190)).toEqual({ effort: 60, source: 'zones' });
+    expect(parseActivitySummary({ ...{ activityId: 1, startTimeLocal: '2026-01-08 10:00:00' }, activityType: { typeKey: 'stand_up_paddleboarding_v2' } })!.sport).toBe('other');
+  });
+
+  test('heart-rate zones (recorded, HR_RESERVE method)', () => {
+    const recorded = [{
+      trainingMethod: 'HR_RESERVE', restingHeartRateUsed: 42, lactateThresholdHeartRateUsed: 170,
+      zone1Floor: 130, zone2Floor: 140, zone3Floor: 150, zone4Floor: 160, zone5Floor: 170,
+      maxHeartRateUsed: 185, restingHrAutoUpdateUsed: false, sport: 'DEFAULT', changeState: 'UNCHANGED',
+    }];
+    const z = parseHeartRateZones(recorded)!;
+    expect(z).toEqual({ hrMax: 185, floors: [130, 140, 150, 160, 170], source: 'garmin' });
+    // zones come from the floors, not from % of max: 129 → below Z1, 150 → Z3, 170 → Z5
+    expect([129, 130, 150, 169, 170].map(h => zoneOf(h, z))).toEqual([0, 1, 3, 4, 5]);
+  });
+
+  test('zones: prefers DEFAULT, falls back to RUNNING, rejects malformed', () => {
+    const run = { sport: 'RUNNING', zone1Floor: 100, zone2Floor: 120, zone3Floor: 140, zone4Floor: 155, zone5Floor: 170, maxHeartRateUsed: 190 };
+    const bike = { ...run, sport: 'CYCLING', zone1Floor: 95 };
+    expect(parseHeartRateZones([bike, run])!.floors[0]).toBe(100);
+    expect(parseHeartRateZones([{ ...run, zone3Floor: 110 }])).toBeNull(); // not increasing
+    expect(parseHeartRateZones({ error: 'x' })).toBeNull();
   });
 });
