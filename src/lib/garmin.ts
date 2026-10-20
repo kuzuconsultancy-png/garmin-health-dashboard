@@ -19,7 +19,7 @@ let garminClient: unknown = null;
 let clientTs = 0;
 const CLIENT_TTL = 55 * 60 * 1000; // 55 min
 
-async function getClient(): Promise<unknown> {
+export async function getClient(): Promise<unknown> {
   // Reuse warm singleton
   if (garminClient && Date.now() - clientTs < CLIENT_TTL) return garminClient;
 

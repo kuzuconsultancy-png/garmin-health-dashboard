@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { betaJSONSchemaOutputFormat } from '@anthropic-ai/sdk/helpers/beta/json-schema';
-import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import { fetchRecentActivities, fetchTrendData } from '@/lib/garmin';
+import { resolveToday } from '@/lib/dates';
 import {
   WINDOW_DAYS, buildCoachDays, computeCoachMetrics, buildAdviceInput, upcomingDates,
   type AdviceProfile,
@@ -70,14 +70,6 @@ interface AdviceRequest {
   lang?: unknown;
   profile?: unknown;
   refresh?: unknown;
-}
-
-/** Client's local date (so the window matches the athlete's day), clamped to ±1 day of server time. */
-function resolveToday(raw: unknown): string {
-  const serverToday = format(new Date(), 'yyyy-MM-dd');
-  if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return serverToday;
-  const diff = differenceInCalendarDays(parseISO(raw), parseISO(serverToday));
-  return Number.isFinite(diff) && Math.abs(diff) <= 1 ? raw : serverToday;
 }
 
 function sanitizeProfile(raw: unknown): AdviceProfile | null {
