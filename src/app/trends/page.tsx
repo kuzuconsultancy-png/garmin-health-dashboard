@@ -225,7 +225,8 @@ export default function TrendsPage() {
 
   const buildRows = (): RowData[] => {
     if (range === 7 && data) {
-      const avgRec = Math.round(data.weeklyTrend.recovery.reduce((s, v) => s + v, 0) / 7);
+      const recDays = data.weeklyTrend.recovery.filter(v => v > 0);
+      const avgRec = recDays.length ? Math.round(recDays.reduce((s, v) => s + v, 0) / recDays.length) : 0;
       return [
         { label: t('trends.recovery'), unit: '%',   color: getCategoryColor(avgRec), series: data.weeklyTrend.recovery,  decimals: 0, higherIsBetter: true  },
         { label: t('trends.hrv'),      unit: 'ms',  color: '#c084fc',                series: data.weeklyTrend.hrv,        decimals: 0, higherIsBetter: true  },

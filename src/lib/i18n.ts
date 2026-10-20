@@ -38,6 +38,18 @@ function resolveArr(obj: Record<string, unknown>, key: string): string[] {
   return Array.isArray(cur) ? cur.map(String) : [];
 }
 
+/**
+ * Saved preference, else browser language. Usable outside React state — child
+ * effects run before the provider's, so they can't rely on `locale` on mount.
+ */
+export function detectLocale(): Locale {
+  try {
+    const saved = localStorage.getItem('garmin_lang');
+    if (saved === 'en' || saved === 'es') return saved;
+  } catch { /* storage unavailable */ }
+  return typeof navigator !== 'undefined' && navigator.language.startsWith('es') ? 'es' : 'en';
+}
+
 // ── Context ───────────────────────────────────────────────────────────────────
 interface LangContextType {
   locale: Locale;
@@ -60,10 +72,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
   // Load locale file + apply saved preference
   useEffect(() => {
-    const saved = localStorage.getItem('garmin_lang') as Locale | null;
-    const detected = navigator.language.startsWith('es') ? 'es' : 'en';
-    const lang: Locale = saved === 'en' || saved === 'es' ? saved : detected;
-    setLocaleState(lang);
+    setLocaleState(detectLocale());
   }, []);
 
   useEffect(() => {

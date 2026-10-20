@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutDashboard, Moon, TrendingUp, Flame, User, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Moon, TrendingUp, Flame, User, Sparkles, Dumbbell } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { clsx } from 'clsx';
@@ -12,7 +12,8 @@ export default function BottomNav() {
 
   const NAV_ITEMS = [
     { href: '/', label: t('nav.home'), Icon: LayoutDashboard },
-    { href: '/advice', label: 'Advice', Icon: Sparkles },
+    { href: '/advice', label: t('nav.advice'), Icon: Sparkles },
+    { href: '/training', label: t('nav.training'), Icon: Dumbbell },
     { href: '/sleep', label: t('nav.sleep'), Icon: Moon },
     { href: '/strain', label: t('nav.strain'), Icon: Flame },
     { href: '/trends', label: t('nav.trends'), Icon: TrendingUp },
@@ -23,7 +24,7 @@ export default function BottomNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur border-t border-border safe-pb">
       <div className="max-w-md mx-auto flex">
         {NAV_ITEMS.map(({ href, label, Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href || (href === '/training' && pathname.startsWith('/activity'));
           return (
             <Link
               key={href}
