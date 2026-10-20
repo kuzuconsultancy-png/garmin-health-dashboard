@@ -73,10 +73,17 @@ export function paceZoneSpeeds(vdot: number): number[] {
   return PACE_ZONE_FRACTIONS.map(f => (f === 0 ? 0 : speedAtFraction(vdot, f)));
 }
 
-/** Current VDOT: best performance among efforts ≥ 3 km (shorter ones overstate it). */
+/** The effort ≥ 3 km with the highest VDOT (shorter efforts overstate it), and that VDOT. */
+export function bestVdotEffort<T extends BestEffort>(efforts: T[]): { vdot: number; from: T } | null {
+  let best: { vdot: number; from: T } | null = null;
+  for (const e of efforts) {
+    if (e.distM < 3000 || e.timeSec <= 0) continue;
+    const v = vdotFromPerformance(e.distM, e.timeSec);
+    if (!best || v > best.vdot) best = { vdot: Math.round(v * 10) / 10, from: e };
+  }
+  return best;
+}
+
 export function currentVdot(efforts: StoredEffort[] | BestEffort[]): number | null {
-  const v = efforts
-    .filter(e => e.distM >= 3000 && e.timeSec > 0)
-    .map(e => vdotFromPerformance(e.distM, e.timeSec));
-  return v.length ? Math.round(Math.max(...v) * 10) / 10 : null;
+  return bestVdotEffort(efforts as BestEffort[])?.vdot ?? null;
 }
