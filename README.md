@@ -30,6 +30,8 @@ A personal health dashboard that connects to Garmin Connect and displays your da
 | **Sleep** | Sleep stages (Deep / REM / Light / Awake), SpO₂, overnight HRV, 7-day trend |
 | **Strain** | Daily strain (0–21 scale), ACWR load ratio, activities breakdown |
 | **Advice** | 3-day training plan from your last 14 days of load + recovery (HRV, RHR, sleep) — optional, needs Anthropic API key |
+| **Training** | Fitness & Freshness (fitness / fatigue / form), weekly effort with target range, training log, goals, year-over-year progress, race predictions + Daniels training paces, best efforts & PRs |
+| **Activity** | Splits with grade-adjusted pace, pace / HR / elevation charts, HR & pace zones, best efforts with PR badges, AI insight (optional, Anthropic API key) |
 | **Trends** | 7 / 14 / 30-day sparklines, PDF export |
 | **Profile** | BMI, VO2max estimate, training zones, weight log |
 
@@ -236,6 +238,8 @@ Dashboard personal de salud que se conecta a Garmin Connect y muestra tus métri
 | **Sueño** | Fases del sueño (Profundo / REM / Ligero / Despierto), SpO₂, HRV nocturno, tendencia 7d |
 | **Esfuerzo** | Esfuerzo diario (escala 0–21), ratio ACWR, desglose de actividades |
 | **Consejos** | Plan de entrenamiento de 3 días a partir de tus últimos 14 días de carga + recuperación (VFC, FC reposo, sueño) — opcional, requiere API key de Anthropic |
+| **Entrenamiento** | Forma y frescura (forma física / fatiga / frescura), esfuerzo semanal con rango objetivo, diario de entrenamiento, metas, progreso interanual, predicción de carreras + ritmos de Daniels, mejores esfuerzos y récords |
+| **Actividad** | Parciales con ritmo ajustado por pendiente (GAP), gráficas de ritmo / FC / desnivel, zonas de FC y de ritmo, mejores esfuerzos con récords, análisis IA (opcional, API key de Anthropic) |
 | **Tendencias** | Sparklines 7 / 14 / 30 días, exportación PDF |
 | **Perfil** | IMC, estimación VO2max, zonas de entrenamiento, registro de peso |
 

@@ -55,6 +55,7 @@ export function useHRMax(activities: ActivitySummary[]): number {
 
 const EFFORTS_KEY = 'training_best_efforts_v1';
 const BATCH = 8;
+const BATCH_PAUSE_MS = 1500; // spread Garmin detail requests out; a cold backfill can be hundreds of runs
 type EffortStore = Record<string, { date: string; efforts: BestEffort[] }>;
 
 function readStore(): EffortStore {
@@ -101,6 +102,7 @@ export function useBestEfforts(activities: ActivitySummary[], today: string) {
           current = { ...current, ...body.results };
           writeStore(current);
           if (!cancelled) setStore(current);
+          await new Promise(r => setTimeout(r, BATCH_PAUSE_MS));
           if (body.failed.length) {
             misses += body.failed.length;
             setFailed(misses);
