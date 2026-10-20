@@ -191,10 +191,10 @@ export function chartSeries(s: ActivityStreams, points = 200): ChartPoint[] {
 /** Everything the activity page shows, from one stream fetch. */
 export function analyzeActivity(
   s: ActivityStreams,
-  opts: { isRun: boolean; hrMax: number; vdot: number | null },
+  opts: { isRun: boolean; hrMax: number; vdot: number | null; splitM?: number },
 ): ActivityAnalysis {
   const hasDist = s.dist.length > 1 && s.dist[s.dist.length - 1] > 100;
-  const splits = hasDist ? computeSplits(s) : [];
+  const splits = hasDist ? computeSplits(s, opts.splitM ?? 1000) : [];
   const totalDist = hasDist ? s.dist[s.dist.length - 1] - s.dist[0] : 0;
   const totalTime = s.t.length > 1 ? s.t[s.t.length - 1] - s.t[0] : 0;
   return {

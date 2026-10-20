@@ -25,7 +25,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   try {
     const streams = await fetchActivityStreams(summary);
-    const analysis = streams ? analyzeActivity(streams, { isRun: summary.sport === 'running', hrMax, vdot }) : null;
+    const splitM = summary.sport === 'cycling' ? 5000 : 1000;
+    const analysis = streams ? analyzeActivity(streams, { isRun: summary.sport === 'running', hrMax, vdot, splitM }) : null;
     return NextResponse.json({ summary, analysis, hrMax, vdot, isDemo });
   } catch (err) {
     console.error('[api/activities/:id] streams failed:', err instanceof Error ? err.message : err);

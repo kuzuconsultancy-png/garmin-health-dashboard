@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaJSONSchemaOutputFormat } from '@anthropic-ai/sdk/helpers/beta/json-schema';
 import { fetchRecentActivities, fetchTrendData } from '@/lib/garmin';
 import { resolveToday } from '@/lib/dates';
+import { CLAUDE_MODEL, CLAUDE_EFFORT } from '@/lib/claude';
 import {
   WINDOW_DAYS, buildCoachDays, computeCoachMetrics, buildAdviceInput, upcomingDates,
   type AdviceProfile,
@@ -13,10 +14,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-// Override with ANTHROPIC_MODEL / ANTHROPIC_EFFORT. The heavy lifting (load, baselines,
-// flags) is done in lib/coach.ts, so the model only synthesizes — low effort is enough.
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5';
-const EFFORT = (['low', 'medium', 'high'] as const).find(e => e === process.env.ANTHROPIC_EFFORT) ?? 'low';
+// The heavy lifting (load, baselines, flags) is done in lib/coach.ts, so the model only synthesizes.
+const MODEL = CLAUDE_MODEL;
+const EFFORT = CLAUDE_EFFORT;
 
 const SYSTEM_PROMPT = `You are an experienced endurance and strength coach writing a 3-day training plan for one athlete from their Garmin data.
 
